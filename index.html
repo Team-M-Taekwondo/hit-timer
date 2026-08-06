@@ -936,10 +936,6 @@ body {
         </a>
         <span> <b>Sample Mix</b> loops clean, non-explicit NCS tracks &mdash; full songs, free, no login, synced to the timer. For your own links, turn on YouTube <b>Restricted Mode</b> to filter explicit content.</span>
       </div>
-      <label class="premium-toggle">
-        <input type="checkbox" id="ytPremium">
-        <span>I have <b>YouTube Premium</b> &mdash; play through my signed-in account to skip ads. Uses your YouTube login (may show a cookie error on some browsers &mdash; if so, use the <b>Open on YouTube</b> link).</span>
-      </label>
       <div class="yt-preload" id="ytPreloadArea">
         <div class="yt-preload-hint">Preview (muted) &mdash; ad plays here silently; hit <b>Skip Ad</b> when it appears, then Start.</div>
         <div class="yt-preload-frame"><div id="yt-preload-target"></div></div>
@@ -1123,8 +1119,7 @@ const beepDone = () => {
 let ytPlayer = null;
 let ytReady = false;
 let pendingYtConfig = null;
-let ytUsePremium = false;
-function ytHost() { return ytUsePremium ? 'https://www.youtube.com' : 'https://www.youtube-nocookie.com'; }
+function ytHost() { return 'https://www.youtube-nocookie.com'; }
 function loadYouTubeAPI() {
   if (window.YT) { ytReady = true; return; }
   const s = document.createElement('script');
@@ -1717,14 +1712,6 @@ $('sampleBtn').addEventListener('click', () => {
   flashSampleBtn($('sampleBtn'), 'NCS Clean Mix &#9834;', 'Sample Mix');
   ensureAudio();
   preloadYouTube(url);
-});
-
-$('ytPremium').addEventListener('change', (e) => {
-  ytUsePremium = e.target.checked;
-  // Rebuild the muted preview on the new host so the setting takes effect immediately.
-  const url = $('ytInput').value.trim();
-  clearPreload();
-  if (url) preloadYouTube(url);
 });
 
 let ytInputDebounce = null;
