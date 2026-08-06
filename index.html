@@ -1024,6 +1024,12 @@ body {
     <input type="range" class="scrubber" id="scrubber" min="0" max="1000" value="0" step="1" aria-label="Workout progress — drag to scrub">
     <div class="scrub-hint" id="scrubHint">Drag the bar to jump to any point</div>
 
+    <div class="controls">
+      <button class="btn secondary" id="pauseBtn">Pause</button>
+      <button class="btn secondary" id="skipBtn">Skip</button>
+      <button class="btn danger" id="stopBtn">Stop</button>
+    </div>
+
     <div class="music-status" id="musicStatus">
       <span class="dot"></span>
       <span id="musicStatusText">No music &mdash; paste a YouTube URL to add tracks.</span>
@@ -1031,12 +1037,6 @@ body {
       <a href="https://www.youtube.com/results?search_query=edm+workout+mix+1+hour" target="_blank" rel="noopener" id="musicBrowseLink">Browse mixes &rarr;</a>
     </div>
     <div class="youtube-wrap hidden" id="ytWrap"><div id="yt-player"></div></div>
-
-    <div class="controls">
-      <button class="btn secondary" id="pauseBtn">Pause</button>
-      <button class="btn secondary" id="skipBtn">Skip</button>
-      <button class="btn danger" id="stopBtn">Stop</button>
-    </div>
   </div>
 
   <!-- Done -->
