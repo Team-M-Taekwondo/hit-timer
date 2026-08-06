@@ -675,9 +675,10 @@ body {
   stroke: var(--work);
   stroke-width: 12;
   stroke-linecap: round;
-  transition: stroke 0.3s, filter 0.3s, stroke-dashoffset 0.9s linear;
+  transition: stroke 0.3s, filter 0.3s, stroke-dashoffset 0.25s linear;
   filter: drop-shadow(0 0 14px var(--work-glow));
 }
+.ring-fg.scrubbing { transition: stroke 0.3s, filter 0.3s; }
 .ring-fg.rest {
   stroke: var(--rest);
   filter: drop-shadow(0 0 14px var(--rest-glow));
@@ -738,6 +739,48 @@ body {
   border-radius: 999px;
   transition: width 0.3s ease;
   box-shadow: 0 0 12px var(--work-glow);
+}
+
+/* Scrubbable workout progress bar */
+.scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  outline: none;
+  cursor: pointer;
+  margin: 0;
+}
+.scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #22d3a1;
+  box-shadow: 0 0 10px var(--work-glow);
+  cursor: grab;
+}
+.scrubber::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #22d3a1;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px var(--work-glow);
+  cursor: grab;
+}
+.scrubber:active::-webkit-slider-thumb { cursor: grabbing; transform: scale(1.15); }
+.scrub-hint {
+  font-size: 11px;
+  color: var(--dim);
+  text-align: center;
+  margin-top: -8px;
+  opacity: 0.7;
+  letter-spacing: 0.5px;
 }
 
 .controls {
@@ -844,70 +887,25 @@ body {
     </div>
     <p class="edit-hint">Tap any value above to edit it.</p>
 
-    <div class="options-row">
-      <div class="chip active" data-preset="40,10,8">HIIT 40/10</div>
-      <div class="chip" data-preset="20,10,8">Tabata</div>
-      <div class="chip" data-preset="60,15,6">Long HIIT</div>
-      <div class="chip" data-preset="30,30,10">Even 30/30</div>
-    </div>
-
     <div class="music-section">
       <label class="music-section-label">Workout music (optional)</label>
-      <div class="source-tabs">
-        <button type="button" class="source-tab active" data-source="youtube">YouTube</button>
-        <button type="button" class="source-tab" data-source="spotify">Spotify</button>
-        <button type="button" class="source-tab" data-source="apple">Apple Music</button>
+      <div class="music-input-wrap">
+        <input type="text" id="ytInput" placeholder="Paste a YouTube playlist URL, or a single video (will loop)">
+        <button type="button" class="sample-btn" id="sampleBtn" title="Load clean NCS workout tracks">Sample Mix</button>
       </div>
-      <p class="source-note"><b>YouTube plays full songs free, no login.</b> Spotify &amp; Apple Music need a paid subscription (Premium / Apple Music) for full songs &mdash; without it you'll only get 30-second previews.</p>
-
-      <!-- YouTube panel -->
-      <div class="source-panel active" data-panel="youtube">
-        <div class="music-input-wrap">
-          <input type="text" id="ytInput" placeholder="Paste a YouTube playlist URL, or a single video (will loop)">
-          <button type="button" class="sample-btn" id="sampleBtn" title="Load a YouTube Mix seeded from an NCS track">Sample Mix</button>
-        </div>
-        <div class="music-help">
-          <a href="https://www.youtube.com/results?search_query=NCS+1+hour+gaming+mix" target="_blank" rel="noopener">
-            Browse embeddable EDM mixes &rarr;
-          </a>
-          <span> <b>Sample Mix</b> loops clean, non-explicit NCS tracks. For your own links, turn on YouTube <b>Restricted Mode</b> to filter explicit content. Full free playback &amp; syncs with the timer.</span>
-        </div>
-        <label class="premium-toggle">
-          <input type="checkbox" id="ytPremium">
-          <span>I have <b>YouTube Premium</b> &mdash; play through my signed-in account to skip ads. Uses your YouTube login (may show a cookie error on some browsers &mdash; if so, use the <b>Open on YouTube</b> link).</span>
-        </label>
-        <div class="yt-preload" id="ytPreloadArea">
-          <div class="yt-preload-hint">Preview (muted) &mdash; ad plays here silently; hit <b>Skip Ad</b> when it appears, then Start.</div>
-          <div class="yt-preload-frame"><div id="yt-preload-target"></div></div>
-        </div>
+      <div class="music-help">
+        <a href="https://www.youtube.com/results?search_query=NCS+1+hour+gaming+mix" target="_blank" rel="noopener">
+          Browse embeddable EDM mixes &rarr;
+        </a>
+        <span> <b>Sample Mix</b> loops clean, non-explicit NCS tracks &mdash; full songs, free, no login, synced to the timer. For your own links, turn on YouTube <b>Restricted Mode</b> to filter explicit content.</span>
       </div>
-
-      <!-- Spotify panel -->
-      <div class="source-panel" data-panel="spotify">
-        <div class="music-input-wrap">
-          <input type="text" id="spotifyInput" placeholder="Paste a Spotify playlist, album, or track URL">
-          <button type="button" class="sample-btn" id="spotifySampleBtn" title="Load a Spotify workout playlist">Sample</button>
-        </div>
-        <div class="music-help">
-          <a href="https://open.spotify.com/search/edm%20workout/playlists" target="_blank" rel="noopener">
-            Browse Spotify EDM workout playlists &rarr;
-          </a>
-          <span> <b>Only getting 30-sec previews?</b> You're not logged into Spotify Premium in this browser &mdash; sign in at spotify.com with a Premium account, then reload. No Premium? Use the <b>YouTube</b> tab for full, free music. Samples are EDM/dance (non-explicit-leaning); turn off <b>Explicit content</b> in Spotify settings for a hard guarantee. Play/pause syncs with the timer.</span>
-        </div>
-      </div>
-
-      <!-- Apple Music panel -->
-      <div class="source-panel" data-panel="apple">
-        <div class="music-input-wrap">
-          <input type="text" id="appleInput" placeholder="Paste an Apple Music playlist or album URL">
-          <button type="button" class="sample-btn" id="appleSampleBtn" title="Load an Apple Music workout playlist">Sample</button>
-        </div>
-        <div class="music-help">
-          <a href="https://music.apple.com/us/browse" target="_blank" rel="noopener">
-            Browse Apple Music &rarr;
-          </a>
-          <span> Press play in the player to start. Enable <b>Content Restrictions &rarr; Clean</b> in Apple Music settings to block explicit songs. Timer can't auto-pause Apple Music (Apple web limitation); full songs need a subscription.</span>
-        </div>
+      <label class="premium-toggle">
+        <input type="checkbox" id="ytPremium">
+        <span>I have <b>YouTube Premium</b> &mdash; play through my signed-in account to skip ads. Uses your YouTube login (may show a cookie error on some browsers &mdash; if so, use the <b>Open on YouTube</b> link).</span>
+      </label>
+      <div class="yt-preload" id="ytPreloadArea">
+        <div class="yt-preload-hint">Preview (muted) &mdash; ad plays here silently; hit <b>Skip Ad</b> when it appears, then Start.</div>
+        <div class="yt-preload-frame"><div id="yt-preload-target"></div></div>
       </div>
     </div>
 
@@ -976,7 +974,8 @@ body {
       </div>
     </div>
 
-    <div class="progress-bar"><div class="progress-fill" id="overallProgress"></div></div>
+    <input type="range" class="scrubber" id="scrubber" min="0" max="1000" value="0" step="1" aria-label="Workout progress — drag to scrub">
+    <div class="scrub-hint" id="scrubHint">Drag the bar to jump to any point</div>
 
     <div class="music-status" id="musicStatus">
       <span class="dot"></span>
@@ -985,8 +984,6 @@ body {
       <a href="https://www.youtube.com/results?search_query=edm+workout+mix+1+hour" target="_blank" rel="noopener" id="musicBrowseLink">Browse mixes &rarr;</a>
     </div>
     <div class="youtube-wrap hidden" id="ytWrap"><div id="yt-player"></div></div>
-    <div class="embed-wrap hidden" id="spotifyWrap"><div id="spotify-embed"></div></div>
-    <div class="embed-wrap hidden" id="appleWrap"></div>
 
     <div class="controls">
       <button class="btn secondary" id="pauseBtn">Pause</button>
@@ -1367,9 +1364,12 @@ drawTicks();
 // ---------- Timer engine ----------
 const state = {
   prepSec: 10, workSec: 40, restSec: 10, totalSets: 8,
-  curSet: 1, phase: 'work', remaining: 40,
-  running: false, paused: false,
-  intervalId: null, startedAt: 0,
+  segments: [], total: 0,
+  baseElapsed: 0,   // elapsed seconds captured at the last (re)base point
+  baseTime: 0,      // performance.now() at last rebase (used only while running & not paused)
+  running: false, paused: false, scrubbing: false, scrubElapsed: 0,
+  intervalId: null,
+  lastElapsed: 0, lastSegIndex: -1, lastWhole: -1,
   wakeLock: null
 };
 
@@ -1383,138 +1383,18 @@ const NCS_CLEAN = [
   '3nQNiWdeH2Q', // Janji - Heroes Tonight
   'J2X5mJ3HDYE'  // DEAF KEV - Invincible
 ];
-// EDM/dance editorial playlists — electronic genre is overwhelmingly non-explicit (vs hip-hop lists).
-const SPOTIFY_SAMPLES = [
-  { id: '37i9dQZF1DX4dyzvuaRJ0n', label: 'mint' },
-  { id: '37i9dQZF1DXaXB8fQg7xif', label: 'Dance Party' },
-  { id: '37i9dQZF1DX0BcQWzuB7ZO', label: 'Dance Hits' },
-  { id: '37i9dQZF1DX8tZsk68tuDw', label: 'Dance Rising' },
-  { id: '37i9dQZF1DXa8NOEUWPn9W', label: 'Housewerk' }
-];
-const APPLE_SAMPLES = [
-  { url: 'https://music.apple.com/us/playlist/dancexl/pl.6bf4415b83ce4f3789614ac4c3675740', label: 'danceXL' }
-];
-
-const _lastIdx = { youtube: -1, spotify: -1, apple: -1 };
-function pickRandom(pool, key) {
-  if (pool.length < 2) { _lastIdx[key] = 0; return pool[0]; }
-  let idx;
-  do { idx = Math.floor(Math.random() * pool.length); } while (idx === _lastIdx[key]);
-  _lastIdx[key] = idx;
-  return pool[idx];
-}
-
-// ---------- Spotify ----------
-let spotifyApi = null;        // IFrameAPI object
-let spotifyController = null;
-let spotifyPendingUri = null;
-window.onSpotifyIframeApiReady = (IFrameAPI) => {
-  spotifyApi = IFrameAPI;
-  if (spotifyPendingUri) { createSpotify(spotifyPendingUri); spotifyPendingUri = null; }
-};
-function loadSpotifyAPI() {
-  if (document.getElementById('spotify-iframe-api')) return;
-  const s = document.createElement('script');
-  s.id = 'spotify-iframe-api';
-  s.src = 'https://open.spotify.com/embed/iframe-api/v1';
-  document.head.appendChild(s);
-}
-function parseSpotify(url) {
-  if (!url || !url.trim()) return null;
-  const u = url.trim();
-  let m = u.match(/spotify:(playlist|track|album|artist|show|episode):([A-Za-z0-9]+)/);
-  if (m) return { uri: `spotify:${m[1]}:${m[2]}` };
-  try {
-    const p = new URL(u.startsWith('http') ? u : 'https://' + u);
-    if (p.hostname.includes('spotify.com')) {
-      const parts = p.pathname.split('/').filter(Boolean);
-      const types = ['playlist','track','album','artist','show','episode'];
-      const ti = parts.findIndex(x => types.includes(x));
-      if (ti >= 0 && parts[ti+1]) {
-        return { uri: `spotify:${parts[ti]}:${parts[ti+1].split('?')[0]}` };
-      }
-    }
-  } catch(e){}
-  return null;
-}
-function createSpotify(uri) {
-  if (!spotifyApi) { spotifyPendingUri = uri; loadSpotifyAPI(); return; }
-  if (spotifyController) { try { spotifyController.destroy(); } catch(e){} spotifyController = null; }
-  const wrap = $('spotifyWrap');
-  wrap.innerHTML = '<div id="spotify-embed"></div>';
-  wrap.classList.remove('hidden');
-  spotifyApi.createController(
-    document.getElementById('spotify-embed'),
-    { uri, width: '100%', height: 352 },
-    (controller) => {
-      spotifyController = controller;
-      controller.addListener('ready', () => {
-        try { controller.play(); } catch(e){}
-        setMusicStatus('playing', 'Spotify loaded &mdash; press play in the player if it doesn\'t start.');
-      });
-      controller.addListener('playback_update', (e) => {
-        if (!e || !e.data) return;
-        if (e.data.isPaused) setMusicStatus('paused', 'Spotify paused');
-        else setMusicStatus('playing', 'Spotify playing');
-      });
-    }
-  );
-}
-function spotifyPlay() { try { spotifyController && spotifyController.resume(); } catch(e){ try { spotifyController.play(); } catch(_){} } }
-function spotifyPause() { try { spotifyController && spotifyController.pause(); } catch(e){} }
-
-// ---------- Apple Music ----------
-function parseApple(url) {
-  if (!url || !url.trim()) return null;
-  let u = url.trim();
-  if (!/music\.apple\.com/.test(u)) return null;
-  if (!u.startsWith('http')) u = 'https://' + u;
-  const embedUrl = u.replace(/:\/\/(www\.)?music\.apple\.com/, '://embed.music.apple.com');
-  return { embedUrl };
-}
-function createApple(embedUrl) {
-  const wrap = $('appleWrap');
-  wrap.innerHTML = '<iframe allow="autoplay *; encrypted-media *;" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" height="450" src="' + embedUrl + '"></iframe>';
-  wrap.classList.remove('hidden');
-  setMusicStatus('paused', 'Apple Music loaded &mdash; press play in the player to start.');
-}
-
-// ---------- Music dispatch ----------
-function musicPause() {
-  if (musicSource === 'youtube') ytPause();
-  else if (musicSource === 'spotify') spotifyPause();
-  // apple: no programmatic control
-}
-function musicResume() {
-  if (musicSource === 'youtube') ytPlay();
-  else if (musicSource === 'spotify') spotifyPlay();
-}
+// ---------- Music dispatch (YouTube only) ----------
+function musicPause() { ytPause(); }
+function musicResume() { ytPlay(); }
 function startMusicForSession() {
-  const yt = $('ytWrap'), sp = $('spotifyWrap'), ap = $('appleWrap');
-  if (musicSource === 'youtube') {
-    sp.classList.add('hidden'); ap.classList.add('hidden');
-    const rawUrl = $('ytInput').value.trim();
-    const ytConfig = parseYouTube(rawUrl);
-    if (!ytConfig) { clearPreload(); yt.classList.add('hidden'); setMusicStatus('', 'No music &mdash; add a YouTube URL on the setup screen.'); return; }
-    if (preloadedPlayer && preloadedUrl === rawUrl) {
-      adoptPreloadedPlayer(rawUrl);
-    } else {
-      clearPreload();
-      initYouTube(ytConfig, rawUrl);
-    }
-  } else if (musicSource === 'spotify') {
-    clearPreload(); ytPause();
-    yt.classList.add('hidden'); ap.classList.add('hidden');
-    const s = parseSpotify($('spotifyInput').value);
-    if (!s) { sp.classList.add('hidden'); setMusicStatus('', 'No music &mdash; add a Spotify URL on the setup screen.'); return; }
-    setMusicStatus('', 'Loading Spotify&hellip;');
-    createSpotify(s.uri);
-  } else if (musicSource === 'apple') {
-    clearPreload(); ytPause();
-    yt.classList.add('hidden'); sp.classList.add('hidden');
-    const a = parseApple($('appleInput').value);
-    if (!a) { ap.classList.add('hidden'); setMusicStatus('', 'No music &mdash; add an Apple Music URL on the setup screen.'); return; }
-    createApple(a.embedUrl);
+  const rawUrl = $('ytInput').value.trim();
+  const ytConfig = parseYouTube(rawUrl);
+  if (!ytConfig) { clearPreload(); $('ytWrap').classList.add('hidden'); setMusicStatus('', 'No music &mdash; add a YouTube URL on the setup screen.'); return; }
+  if (preloadedPlayer && preloadedUrl === rawUrl) {
+    adoptPreloadedPlayer(rawUrl);
+  } else {
+    clearPreload();
+    initYouTube(ytConfig, rawUrl);
   }
 }
 
@@ -1526,49 +1406,81 @@ function setBg(cls) {
   bg.className = 'bg-gradient ' + cls;
 }
 
-function phaseTotal(phase) {
-  if (phase === 'prep') return state.prepSec;
-  if (phase === 'work') return state.workSec;
-  return state.restSec;
-}
-
-function updateRing() {
-  const total = phaseTotal(state.phase);
-  const pct = total > 0 ? Math.max(0, Math.min(1, state.remaining / total)) : 0;
-  $('ring').style.strokeDashoffset = (1 - pct) * RING_CIRC;
-}
-
-function updateOverall() {
-  const perSet = state.workSec + state.restSec;
-  const totalSec = perSet * state.totalSets + state.prepSec;
-  let doneSec = 0;
-  if (state.phase === 'prep') {
-    doneSec = state.prepSec - state.remaining;
-  } else {
-    doneSec = state.prepSec + (state.curSet - 1) * perSet +
-      (state.phase === 'work'
-        ? (state.workSec - state.remaining)
-        : state.workSec + (state.restSec - state.remaining));
+function buildSegments() {
+  const segs = [];
+  let t = 0;
+  if (state.prepSec > 0) { segs.push({ phase: 'prep', start: 0, end: state.prepSec, set: 1 }); t = state.prepSec; }
+  for (let i = 1; i <= state.totalSets; i++) {
+    segs.push({ phase: 'work', start: t, end: t + state.workSec, set: i }); t += state.workSec;
+    segs.push({ phase: 'rest', start: t, end: t + state.restSec, set: i }); t += state.restSec;
   }
-  $('overallProgress').style.width = Math.min(100, doneSec / totalSec * 100) + '%';
+  state.segments = segs;
+  state.total = t;
+}
+
+// Real seconds elapsed into the workout, derived from the wall clock so it stays
+// accurate even if the tab was backgrounded/throttled by the OS.
+function currentElapsed() {
+  let e = state.baseElapsed;
+  if (state.running && !state.paused) e += (performance.now() - state.baseTime) / 1000;
+  return Math.max(0, Math.min(state.total, e));
+}
+
+// Given elapsed seconds, resolve which segment/phase/set we're in and time left.
+function modelAt(e) {
+  const segs = state.segments;
+  if (!segs.length) return { segIndex: 0, phase: 'work', set: 1, remaining: 0, whole: 0, done: true };
+  if (e >= state.total) {
+    const last = segs[segs.length - 1];
+    return { segIndex: segs.length - 1, phase: last.phase, set: last.set, remaining: 0, whole: 0, done: true };
+  }
+  let i = 0;
+  for (; i < segs.length; i++) { if (e < segs[i].end) break; }
+  const seg = segs[i];
+  const remaining = seg.end - e;
+  return { segIndex: i, phase: seg.phase, set: seg.set, remaining, whole: Math.max(1, Math.ceil(remaining)), done: false };
+}
+
+// Jump the timeline to a specific elapsed point (used by Skip and the scrubber).
+function setElapsed(e) {
+  e = Math.max(0, Math.min(state.total, e));
+  state.baseElapsed = e;
+  state.baseTime = performance.now();
+  state.lastElapsed = e;
+  const m = modelAt(e);
+  state.lastSegIndex = m.segIndex;
+  state.lastWhole = m.whole;
+  render();
+  if (e >= state.total) finish();
+}
+
+function updateScrubber(e) {
+  const scr = $('scrubber');
+  if (!scr) return;
+  const frac = state.total > 0 ? e / state.total : 0;
+  if (!state.scrubbing) scr.value = String(Math.round(frac * 1000));
+  const pct = (frac * 100).toFixed(2) + '%';
+  scr.style.background = `linear-gradient(to right, #22d3a1 0%, #38bdf8 ${pct}, rgba(255,255,255,0.08) ${pct})`;
 }
 
 function render() {
-  $('count').textContent = state.remaining;
-  $('curSet').textContent = state.curSet;
+  const e = state.scrubbing ? state.scrubElapsed : currentElapsed();
+  const m = modelAt(e);
+  $('count').textContent = m.done ? 0 : m.whole;
+  $('curSet').textContent = m.set;
   $('totSet').textContent = state.totalSets;
   const label = $('phaseLabel');
   const ring = $('ring');
   label.classList.remove('rest', 'prep');
   ring.classList.remove('rest', 'prep');
   let bgClass = '';
-  if (state.phase === 'prep') {
+  if (m.phase === 'prep') {
     label.textContent = 'GET READY';
     label.classList.add('prep');
     ring.classList.add('prep');
     $('countSub').textContent = 'starting soon';
     bgClass = 'prep';
-  } else if (state.phase === 'work') {
+  } else if (m.phase === 'work') {
     label.textContent = 'WORK';
     $('countSub').textContent = 'work';
     bgClass = 'work';
@@ -1579,35 +1491,34 @@ function render() {
     $('countSub').textContent = 'rest';
     bgClass = 'rest';
   }
-  const isWarn = state.remaining <= 5 && state.remaining > 0;
+  const isWarn = !m.done && m.whole <= 5 && m.whole >= 1;
   $('count').classList.toggle('warn', isWarn);
   label.classList.toggle('warn', isWarn);
   ring.classList.toggle('warn', isWarn);
   setBg(bgClass + (isWarn ? ' warn' : ''));
-  updateRing();
-  updateOverall();
+  const seg = state.segments[m.segIndex];
+  const segDur = seg ? (seg.end - seg.start) : 1;
+  const pct = segDur > 0 ? Math.max(0, Math.min(1, m.remaining / segDur)) : 0;
+  ring.classList.toggle('scrubbing', state.scrubbing);
+  $('ring').style.strokeDashoffset = (1 - pct) * RING_CIRC;
+  updateScrubber(e);
 }
 
 function tick() {
-  if (!state.running || state.paused) return;
-  state.remaining -= 1;
-  if (state.remaining >= 1 && state.remaining <= 5) beepShort();
-  if (state.remaining <= 0) {
-    beepLong();
-    if (state.phase === 'prep') {
-      state.phase = 'work';
-      state.remaining = state.workSec;
-    } else if (state.phase === 'work') {
-      state.phase = 'rest';
-      state.remaining = state.restSec;
-    } else {
-      if (state.curSet >= state.totalSets) { finish(); return; }
-      state.curSet += 1;
-      state.phase = 'work';
-      state.remaining = state.workSec;
-    }
+  if (!state.running || state.paused || state.scrubbing) return;
+  const e = currentElapsed();
+  const dE = e - state.lastElapsed;
+  const m = modelAt(e);
+  // Beep only on normal real-time advances; skip large jumps (e.g. returning from background).
+  if (dE > 0 && dE < 2) {
+    if (state.lastSegIndex !== -1 && m.segIndex !== state.lastSegIndex && !m.done) beepLong();
+    if (!m.done && m.whole !== state.lastWhole && m.whole >= 1 && m.whole <= 5) beepShort();
   }
+  state.lastElapsed = e;
+  state.lastSegIndex = m.segIndex;
+  state.lastWhole = m.whole;
   render();
+  if (m.done) finish();
 }
 
 async function requestWakeLock() {
@@ -1621,7 +1532,18 @@ function releaseWakeLock() {
   if (state.wakeLock) { try { state.wakeLock.release(); } catch(e){} state.wakeLock = null; }
 }
 document.addEventListener('visibilitychange', () => {
-  if (state.running && !state.paused && document.visibilityState === 'visible') requestWakeLock();
+  if (document.visibilityState !== 'visible') return;
+  if (state.running && !state.paused) requestWakeLock();
+  if (state.running) {
+    // Catch up instantly to where the workout should be after being backgrounded.
+    const e = currentElapsed();
+    state.lastElapsed = e;
+    const m = modelAt(e);
+    state.lastSegIndex = m.segIndex;
+    state.lastWhole = m.whole;
+    render();
+    if (m.done) finish();
+  }
 });
 
 function start() {
@@ -1629,17 +1551,15 @@ function start() {
   state.workSec = clamp(parseInt($('workSec').value) || 40, 1, 600);
   state.restSec = clamp(parseInt($('restSec').value) || 10, 1, 600);
   state.totalSets = clamp(parseInt($('sets').value) || 8, 1, 99);
-  state.curSet = 1;
-  if (state.prepSec > 0) {
-    state.phase = 'prep';
-    state.remaining = state.prepSec;
-  } else {
-    state.phase = 'work';
-    state.remaining = state.workSec;
-  }
+  buildSegments();
+  state.baseElapsed = 0;
+  state.baseTime = performance.now();
   state.running = true;
   state.paused = false;
-  state.startedAt = Date.now();
+  state.scrubbing = false;
+  state.lastElapsed = 0;
+  state.lastSegIndex = -1;
+  state.lastWhole = -1;
 
   $('setup').classList.add('hidden');
   $('doneScreen').classList.remove('active');
@@ -1653,21 +1573,34 @@ function start() {
   startMusicForSession();
 
   if (state.intervalId) clearInterval(state.intervalId);
-  state.intervalId = setInterval(tick, 1000);
+  state.intervalId = setInterval(tick, 200);
 }
 
 function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 
 function pause() {
   if (!state.running) return;
-  state.paused = !state.paused;
+  if (!state.paused) {
+    state.baseElapsed = currentElapsed(); // freeze at current point
+    state.paused = true;
+  } else {
+    state.baseTime = performance.now();    // resume counting from frozen point
+    state.paused = false;
+    state.lastElapsed = state.baseElapsed;
+    const m = modelAt(state.baseElapsed);
+    state.lastSegIndex = m.segIndex;
+    state.lastWhole = m.whole;
+  }
   $('pauseBtn').textContent = state.paused ? 'Resume' : 'Pause';
   if (state.paused) musicPause(); else musicResume();
+  render();
 }
 
 function skip() {
   if (!state.running) return;
-  state.remaining = 1;
+  const m = modelAt(currentElapsed());
+  const seg = state.segments[m.segIndex];
+  setElapsed(seg ? seg.end + 0.001 : state.total);
 }
 
 function stop() {
@@ -1682,14 +1615,15 @@ function stop() {
 }
 
 function finish() {
+  if (!state.running) return;
   state.running = false;
+  state.paused = false;
   clearInterval(state.intervalId);
   beepDone();
   musicPause();
   releaseWakeLock();
-  const totalMs = Date.now() - state.startedAt;
-  const mm = Math.floor(totalMs / 60000);
-  const ss = Math.floor((totalMs % 60000) / 1000);
+  const mm = Math.floor(state.total / 60);
+  const ss = Math.floor(state.total % 60);
   $('doneSets').textContent = state.totalSets;
   $('doneTime').textContent = `${mm}:${ss.toString().padStart(2,'0')}`;
   $('timerScreen').classList.remove('active');
@@ -1734,35 +1668,12 @@ $('sampleBtn').addEventListener('click', () => {
   preloadYouTube(url);
 });
 
-$('spotifySampleBtn').addEventListener('click', () => {
-  const pick = pickRandom(SPOTIFY_SAMPLES, 'spotify');
-  $('spotifyInput').value = `https://open.spotify.com/playlist/${pick.id}`;
-  flashSampleBtn($('spotifySampleBtn'), pick.label, 'Sample');
-});
-
-$('appleSampleBtn').addEventListener('click', () => {
-  const pick = pickRandom(APPLE_SAMPLES, 'apple');
-  $('appleInput').value = pick.url;
-  flashSampleBtn($('appleSampleBtn'), pick.label, 'Sample');
-});
-
 $('ytPremium').addEventListener('change', (e) => {
   ytUsePremium = e.target.checked;
   // Rebuild the muted preview on the new host so the setting takes effect immediately.
   const url = $('ytInput').value.trim();
   clearPreload();
-  if (musicSource === 'youtube' && url) preloadYouTube(url);
-});
-
-// Source tab switching
-document.querySelectorAll('.source-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    musicSource = tab.dataset.source;
-    document.querySelectorAll('.source-tab').forEach(t => t.classList.toggle('active', t === tab));
-    document.querySelectorAll('.source-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === musicSource));
-    clearPreload();
-    if (musicSource === 'spotify') loadSpotifyAPI();
-  });
+  if (url) preloadYouTube(url);
 });
 
 let ytInputDebounce = null;
@@ -1773,22 +1684,18 @@ $('ytInput').addEventListener('input', () => {
   ytInputDebounce = setTimeout(() => preloadYouTube(v), 600);
 });
 
-document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    const [w, r, s] = chip.dataset.preset.split(',');
-    $('workSec').value = w;
-    $('restSec').value = r;
-    $('sets').value = s;
-  });
+// Scrub the workout timeline: live-preview while dragging, commit on release.
+const scrubberEl = $('scrubber');
+scrubberEl.addEventListener('input', () => {
+  if (!state.running) { scrubberEl.value = '0'; return; }
+  state.scrubbing = true;
+  state.scrubElapsed = (parseInt(scrubberEl.value, 10) / 1000) * state.total;
+  render();
 });
-
-// clear active chip if user manually edits
-['workSec','restSec','sets'].forEach(id => {
-  $(id).addEventListener('input', () => {
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  });
+scrubberEl.addEventListener('change', () => {
+  if (!state.running) return;
+  state.scrubbing = false;
+  setElapsed(state.scrubElapsed);
 });
 
 // keyboard shortcuts
