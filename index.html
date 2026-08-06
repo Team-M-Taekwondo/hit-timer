@@ -495,6 +495,43 @@ body {
 }
 .airplay-icon svg { width: 18px; height: 18px; display: block; }
 
+.app-footer {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--dim);
+  line-height: 1.6;
+}
+.app-footer-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+  opacity: 0.85;
+}
+.app-footer ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.app-footer li {
+  padding-left: 18px;
+  position: relative;
+}
+.app-footer li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: var(--work);
+}
+.app-footer b { color: var(--text); }
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -919,6 +956,16 @@ body {
       </span>
       Play on Apple TV / HomePod (AirPlay)
     </button>
+
+    <div class="app-footer">
+      <div class="app-footer-title">Getting the most out of it</div>
+      <ul>
+        <li><b>Keep this screen open</b> during your set &mdash; it stays awake on its own, and the 5-4-3-2-1 beeps (plus a vibration buzz on Android phones) keep you on pace even over loud music.</li>
+        <li><b>Music:</b> paste any YouTube link or tap <b>Sample Mix</b> for a clean, non-explicit EDM loop. For fully ad-free audio, play from the YouTube app and leave this timer on screen.</li>
+        <li><b>Add to Home Screen</b> for a full-screen app icon. Step away to another app mid-set and the timer picks right back up at the correct time the moment you return.</li>
+        <li><b>Drag the progress bar</b> during a workout to jump to any point &mdash; the countdown follows along.</li>
+      </ul>
+    </div>
   </div>
 
   <!-- AirPlay how-to modal -->
@@ -1054,18 +1101,22 @@ function beep({freq = 1000, ms = 160, gain = 0.7, type = 'square'} = {}) {
   o1.start(t); o2.start(t);
   o1.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
 }
+// Haptic buzz alongside the beeps (Android web only — iOS Safari has no Vibration API).
+function buzz(pattern) { try { if (navigator.vibrate) navigator.vibrate(pattern); } catch(e){} }
 // 5-4-3-2-1 ticks: loud, short, bright.
-const beepShort = () => beep({freq: 1050, ms: 150, gain: 0.8, type: 'square'});
+const beepShort = () => { beep({freq: 1050, ms: 150, gain: 0.8, type: 'square'}); buzz(70); };
 // Phase change (work<->rest): a strong two-tone so it's unmistakable over music.
 const beepLong = () => {
   beep({freq: 780, ms: 180, gain: 0.95, type: 'square'});
   setTimeout(() => beep({freq: 1320, ms: 400, gain: 0.95, type: 'square'}), 175);
+  buzz([0, 160, 80, 160]);
 };
 // Session complete: rising triad fanfare, loud.
 const beepDone = () => {
   beep({freq: 1050, ms: 220, gain: 0.9});
   setTimeout(() => beep({freq: 1400, ms: 260, gain: 0.95}), 230);
   setTimeout(() => beep({freq: 1900, ms: 520, gain: 1.0, type: 'square'}), 520);
+  buzz([0, 220, 100, 220, 100, 380]);
 };
 
 // ---------- YouTube ----------
