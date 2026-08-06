@@ -930,11 +930,6 @@ body {
         <input type="text" id="ytInput" placeholder="Paste a YouTube playlist URL, or a single video (will loop)">
         <button type="button" class="sample-btn" id="sampleBtn" title="Load clean NCS workout tracks">Sample Mix</button>
       </div>
-      <div class="music-help">
-        <a href="https://www.youtube.com/results?search_query=NCS+1+hour+gaming+mix" target="_blank" rel="noopener">
-          Browse embeddable EDM mixes &rarr;
-        </a>
-      </div>
       <div class="yt-preload" id="ytPreloadArea">
         <div class="yt-preload-hint">Preview (muted) &mdash; ad plays here silently; hit <b>Skip Ad</b> when it appears, then Start.</div>
         <div class="yt-preload-frame"><div id="yt-preload-target"></div></div>
@@ -942,16 +937,6 @@ body {
     </div>
 
     <button class="btn" id="startBtn">Start Workout</button>
-    <button type="button" class="airplay-link" id="airplayBtn" title="Send audio to Apple TV / HomePod / AirPlay speakers">
-      <span class="airplay-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8.28 19h7.44L12 15z"/>
-          <path d="M18 16h1a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h1"/>
-        </svg>
-      </span>
-      Play on Apple TV / HomePod (AirPlay)
-    </button>
-
     <div class="app-footer">
       <div class="app-footer-title">Getting the most out of it</div>
       <ul>
@@ -960,41 +945,6 @@ body {
         <li><b>Add to Home Screen</b> for a full-screen app icon. Step away to another app mid-set and the timer picks right back up at the correct time the moment you return.</li>
         <li><b>Drag the progress bar</b> during a workout to jump to any point &mdash; the countdown follows along.</li>
       </ul>
-    </div>
-  </div>
-
-  <!-- AirPlay how-to modal -->
-  <div class="modal-backdrop" id="airplayModal">
-    <div class="modal">
-      <button class="modal-close" id="airplayClose" aria-label="Close">&times;</button>
-      <h2>Play on AirPlay</h2>
-      <p class="modal-sub">Route the music &amp; beeps to Apple TV, HomePod, or any AirPlay speaker.</p>
-
-      <div class="modal-step">
-        <div class="step-num">1</div>
-        <div class="step-body">
-          <div class="step-title">iPhone / iPad</div>
-          <div class="step-detail">Swipe down from the top-right for <b>Control Center</b> &rarr; tap <b>Screen Mirroring</b> &rarr; pick your Apple TV / HomePod. Audio follows the mirror.</div>
-        </div>
-      </div>
-
-      <div class="modal-step">
-        <div class="step-num">2</div>
-        <div class="step-body">
-          <div class="step-title">Mac (Safari)</div>
-          <div class="step-detail">Click the <b>AirPlay icon</b> in the menu bar (top of screen) &rarr; pick your device. Or hold <kbd>Option</kbd> and click the volume icon.</div>
-        </div>
-      </div>
-
-      <div class="modal-step">
-        <div class="step-num">3</div>
-        <div class="step-body">
-          <div class="step-title">Start the workout</div>
-          <div class="step-detail">Come back here, hit <b>Start Workout</b>. Music and 5-4-3-2-1 beeps stream to the AirPlay device.</div>
-        </div>
-      </div>
-
-      <p class="modal-note">Screen Mirroring routes the whole browser tab's audio &mdash; that includes YouTube. Direct AirPlay from just the video isn't possible from a web page (browser limitation, not the app).</p>
     </div>
   </div>
 
@@ -1684,15 +1634,6 @@ $('stopBtn').addEventListener('click', stop);
 $('againBtn').addEventListener('click', () => {
   $('doneScreen').classList.remove('active');
   $('setup').classList.remove('hidden');
-});
-$('airplayBtn').addEventListener('click', () => {
-  $('airplayModal').classList.add('active');
-});
-$('airplayClose').addEventListener('click', () => {
-  $('airplayModal').classList.remove('active');
-});
-$('airplayModal').addEventListener('click', (e) => {
-  if (e.target === $('airplayModal')) $('airplayModal').classList.remove('active');
 });
 function flashSampleBtn(btn, label, resetText) {
   btn.innerHTML = label;
