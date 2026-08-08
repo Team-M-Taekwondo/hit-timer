@@ -916,6 +916,51 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* Live lap schedule strip (shows each lap's work/rest, highlights current) */
+.lap-strip {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: none;
+}
+.lap-strip::-webkit-scrollbar { display: none; }
+.lap-strip:empty { display: none; }
+.lap-chip {
+  flex: 0 0 auto;
+  min-width: 62px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  text-align: center;
+  transition: background 0.2s, opacity 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.lap-chip-num {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--dim);
+  font-weight: 700;
+}
+.lap-chip-time {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+.lap-chip.done { opacity: 0.35; }
+.lap-chip.current {
+  background: #fff;
+  border-color: #fff;
+  box-shadow: 0 0 16px rgba(255,255,255,0.35);
+  transform: scale(1.06);
+}
+.lap-chip.current .lap-chip-num { color: #64748b; }
+.lap-chip.current .lap-chip-time { color: #0a0a1a; }
+
 .controls {
   display: flex;
   gap: 10px;
@@ -1091,6 +1136,8 @@ body {
         <div class="count-sub" id="countSub">seconds</div>
       </div>
     </div>
+
+    <div class="lap-strip" id="lapStrip"></div>
 
     <input type="range" class="scrubber" id="scrubber" min="0" max="1000" value="0" step="1" aria-label="Workout progress — drag to scrub">
     <div class="scrub-hint" id="scrubHint">Drag the bar to jump to any point</div>
@@ -1548,6 +1595,37 @@ function buildSegments() {
   state.total = t;
 }
 
+// ---------- Live lap schedule strip ----------
+let lastStripSet = -1;
+function lapSchedule() {
+  if (state.mode === 'lap') return state.laps.map(l => ({ work: l.work, rest: l.rest }));
+  return Array.from({ length: state.totalSets }, () => ({ work: state.workSec, rest: state.restSec }));
+}
+function buildLapStrip() {
+  const strip = $('lapStrip');
+  if (!strip) return;
+  const unit = state.mode === 'lap' ? 'Lap' : 'Set';
+  strip.innerHTML = lapSchedule().map((s, i) =>
+    `<div class="lap-chip"><div class="lap-chip-num">${unit} ${i + 1}</div><div class="lap-chip-time">${s.work}/${s.rest}</div></div>`
+  ).join('');
+  lastStripSet = -1;
+}
+function updateLapStrip(m) {
+  const strip = $('lapStrip');
+  if (!strip) return;
+  const chips = strip.children;
+  for (let i = 0; i < chips.length; i++) {
+    const n = i + 1;
+    chips[i].classList.toggle('current', !m.done && n === m.set);
+    chips[i].classList.toggle('done', m.done ? true : n < m.set);
+  }
+  if (m.set !== lastStripSet) {
+    lastStripSet = m.set;
+    const cur = chips[m.set - 1];
+    if (cur && cur.scrollIntoView) cur.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }
+}
+
 // Real seconds elapsed into the workout, derived from the wall clock so it stays
 // accurate even if the tab was backgrounded/throttled by the OS.
 function currentElapsed() {
@@ -1633,6 +1711,7 @@ function render() {
   ring.classList.toggle('scrubbing', state.scrubbing);
   $('ring').style.strokeDashoffset = (1 - pct) * RING_CIRC;
   updateScrubber(e);
+  updateLapStrip(m);
 }
 
 function tick() {
@@ -1694,6 +1773,7 @@ function start() {
     state.totalSets = clamp(parseInt($('sets').value) || 8, 1, 99);
   }
   buildSegments();
+  buildLapStrip();
   state.baseElapsed = 0;
   state.baseTime = performance.now();
   state.running = true;
