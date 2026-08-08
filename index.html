@@ -157,6 +157,93 @@ body {
   font-style: italic;
   opacity: 0.75;
 }
+
+/* Home screen mode choices */
+.mode-choices { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.mode-card {
+  text-align: left;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.3);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.mode-card:hover { border-color: var(--work); background: rgba(34,211,161,0.06); transform: translateY(-2px); }
+.mode-card-title { font-size: 20px; font-weight: 800; color: var(--text); }
+.mode-card-desc { font-size: 13px; color: var(--dim); line-height: 1.5; }
+
+.back-link {
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 10px;
+  font-family: inherit;
+}
+.back-link:hover { color: var(--text); }
+.mode-title { margin-bottom: 20px; }
+
+/* Mode-specific field visibility */
+#lapTopGrid { grid-template-columns: repeat(2, 1fr); }
+.setup.mode-set .lap-only { display: none; }
+.setup.mode-lap .set-only { display: none; }
+
+/* Per-lap config rows */
+.lap-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.lap-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.lap-row-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--work);
+  min-width: 50px;
+  letter-spacing: 0.5px;
+}
+.lap-row-fields { display: flex; gap: 10px; flex: 1; }
+.lap-row-fields label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+.lap-row-fields input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.lap-row-fields input::-webkit-outer-spin-button,
+.lap-row-fields input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.lap-row-fields input:focus { border-color: var(--work); }
 .field {
   background: rgba(0,0,0,0.3);
   border: 1px solid var(--border);
@@ -904,8 +991,8 @@ body {
 <div class="particles" id="particles"></div>
 
 <div class="app">
-  <!-- Setup -->
-  <div class="setup" id="setup">
+  <!-- Home: choose a mode -->
+  <div class="setup home-screen" id="homeScreen">
     <img class="team-logo"
          src="logo.png"
          alt="MTEAM Taekwondo Demonstration"
@@ -913,7 +1000,24 @@ body {
     <h1>HIIT Timer</h1>
     <p class="tagline">Interval training with a beat.</p>
 
-    <div class="field-grid">
+    <div class="mode-choices">
+      <button type="button" class="mode-card" id="chooseSet">
+        <span class="mode-card-title">Set Intervals</span>
+        <span class="mode-card-desc">One setup &mdash; repeated for a set number of rounds. Classic HIIT.</span>
+      </button>
+      <button type="button" class="mode-card" id="chooseLap">
+        <span class="mode-card-title">Lap Intervals</span>
+        <span class="mode-card-desc">Each lap has its own work &amp; rest &mdash; build a custom sequence.</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Setup (Set or Lap mode) -->
+  <div class="setup hidden mode-set" id="setup">
+    <button type="button" class="back-link" id="backHome">&larr; Back</button>
+    <h1 class="mode-title" id="modeTitle">Set Intervals</h1>
+
+    <div class="field-grid set-only">
       <div class="field">
         <label>Prep (sec)</label>
         <input type="number" id="prepSec" value="10" min="0" max="60" inputmode="numeric">
@@ -931,6 +1035,19 @@ body {
         <input type="number" id="sets" value="8" min="1" max="99" inputmode="numeric">
       </div>
     </div>
+
+    <div class="field-grid lap-only" id="lapTopGrid">
+      <div class="field">
+        <label>Prep (sec)</label>
+        <input type="number" id="lapPrep" value="10" min="0" max="60" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Laps</label>
+        <input type="number" id="lapCount" value="3" min="1" max="30" inputmode="numeric">
+      </div>
+    </div>
+    <div class="lap-list lap-only" id="lapList"></div>
+
     <p class="edit-hint">Tap any value above to edit it.</p>
 
     <div class="music-section">
@@ -959,7 +1076,7 @@ body {
 
   <!-- Timer -->
   <div class="timer-screen" id="timerScreen">
-    <div class="set-indicator">Set <strong id="curSet">1</strong> / <strong id="totSet">8</strong></div>
+    <div class="set-indicator"><span id="unitLabel">Set</span> <strong id="curSet">1</strong> / <strong id="totSet">8</strong></div>
     <div class="phase-label" id="phaseLabel">WORK</div>
 
     <div class="ring-wrap">
@@ -1368,7 +1485,9 @@ drawTicks();
 
 // ---------- Timer engine ----------
 const state = {
+  mode: 'set', // 'set' | 'lap'
   prepSec: 10, workSec: 40, restSec: 10, totalSets: 8,
+  laps: [], // lap mode: [{work, rest}, ...]
   segments: [], total: 0,
   baseElapsed: 0,   // elapsed seconds captured at the last (re)base point
   baseTime: 0,      // performance.now() at last rebase (used only while running & not paused)
@@ -1413,9 +1532,17 @@ function buildSegments() {
   const segs = [];
   let t = 0;
   if (state.prepSec > 0) { segs.push({ phase: 'prep', start: 0, end: state.prepSec, set: 1 }); t = state.prepSec; }
-  for (let i = 1; i <= state.totalSets; i++) {
-    segs.push({ phase: 'work', start: t, end: t + state.workSec, set: i }); t += state.workSec;
-    segs.push({ phase: 'rest', start: t, end: t + state.restSec, set: i }); t += state.restSec;
+  if (state.mode === 'lap') {
+    state.laps.forEach((lap, i) => {
+      const idx = i + 1;
+      segs.push({ phase: 'work', start: t, end: t + lap.work, set: idx }); t += lap.work;
+      if (lap.rest > 0) { segs.push({ phase: 'rest', start: t, end: t + lap.rest, set: idx }); t += lap.rest; }
+    });
+  } else {
+    for (let i = 1; i <= state.totalSets; i++) {
+      segs.push({ phase: 'work', start: t, end: t + state.workSec, set: i }); t += state.workSec;
+      segs.push({ phase: 'rest', start: t, end: t + state.restSec, set: i }); t += state.restSec;
+    }
   }
   state.segments = segs;
   state.total = t;
@@ -1470,6 +1597,7 @@ function render() {
   const e = state.scrubbing ? state.scrubElapsed : currentElapsed();
   const m = modelAt(e);
   $('count').textContent = m.done ? 0 : m.whole;
+  $('unitLabel').textContent = state.mode === 'lap' ? 'Lap' : 'Set';
   $('curSet').textContent = m.set;
   $('totSet').textContent = state.totalSets;
   const label = $('phaseLabel');
@@ -1550,10 +1678,21 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function start() {
-  state.prepSec = clamp(parseInt($('prepSec').value) || 0, 0, 60);
-  state.workSec = clamp(parseInt($('workSec').value) || 40, 1, 600);
-  state.restSec = clamp(parseInt($('restSec').value) || 10, 1, 600);
-  state.totalSets = clamp(parseInt($('sets').value) || 8, 1, 99);
+  if (state.mode === 'lap') {
+    state.prepSec = clamp(parseInt($('lapPrep').value) || 0, 0, 60);
+    const rows = Array.from($('lapList').querySelectorAll('.lap-row'));
+    state.laps = rows.map(r => ({
+      work: clamp(parseInt(r.querySelector('.lap-work').value) || 30, 1, 600),
+      rest: clamp(parseInt(r.querySelector('.lap-rest').value) || 0, 0, 600)
+    }));
+    if (!state.laps.length) state.laps = [{ work: 40, rest: 10 }];
+    state.totalSets = state.laps.length;
+  } else {
+    state.prepSec = clamp(parseInt($('prepSec').value) || 0, 0, 60);
+    state.workSec = clamp(parseInt($('workSec').value) || 40, 1, 600);
+    state.restSec = clamp(parseInt($('restSec').value) || 10, 1, 600);
+    state.totalSets = clamp(parseInt($('sets').value) || 8, 1, 99);
+  }
   buildSegments();
   state.baseElapsed = 0;
   state.baseTime = performance.now();
@@ -1683,6 +1822,44 @@ scrubberEl.addEventListener('change', () => {
   state.scrubbing = false;
   setElapsed(state.scrubElapsed);
 });
+
+// ---------- Mode selection (home) ----------
+function buildLapRows() {
+  const n = clamp(parseInt($('lapCount').value) || 1, 1, 30);
+  const list = $('lapList');
+  const existing = Array.from(list.querySelectorAll('.lap-row')).map(r => ({
+    work: r.querySelector('.lap-work').value,
+    rest: r.querySelector('.lap-rest').value
+  }));
+  let html = '';
+  for (let i = 0; i < n; i++) {
+    const w = existing[i] ? existing[i].work : 40;
+    const r = existing[i] ? existing[i].rest : 10;
+    html += `<div class="lap-row"><span class="lap-row-label">Lap ${i + 1}</span>` +
+      `<div class="lap-row-fields">` +
+      `<label>Work<input type="number" class="lap-work" value="${w}" min="1" max="600" inputmode="numeric"></label>` +
+      `<label>Rest<input type="number" class="lap-rest" value="${r}" min="0" max="600" inputmode="numeric"></label>` +
+      `</div></div>`;
+  }
+  list.innerHTML = html;
+}
+function openSetup(mode) {
+  state.mode = mode;
+  const s = $('setup');
+  s.classList.remove('mode-set', 'mode-lap');
+  s.classList.add(mode === 'lap' ? 'mode-lap' : 'mode-set');
+  $('modeTitle').textContent = mode === 'lap' ? 'Lap Intervals' : 'Set Intervals';
+  if (mode === 'lap' && !$('lapList').children.length) buildLapRows();
+  $('homeScreen').classList.add('hidden');
+  s.classList.remove('hidden');
+}
+$('chooseSet').addEventListener('click', () => openSetup('set'));
+$('chooseLap').addEventListener('click', () => openSetup('lap'));
+$('backHome').addEventListener('click', () => {
+  $('setup').classList.add('hidden');
+  $('homeScreen').classList.remove('hidden');
+});
+$('lapCount').addEventListener('input', buildLapRows);
 
 // keyboard shortcuts
 document.addEventListener('keydown', e => {
