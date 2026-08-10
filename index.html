@@ -192,7 +192,7 @@ body {
 .mode-title { margin-bottom: 20px; }
 
 /* Mode-specific field visibility */
-#lapTopGrid { grid-template-columns: repeat(2, 1fr); }
+#lapTopGrid, #setTopGrid { grid-template-columns: repeat(2, 1fr); }
 .setup.mode-set .lap-only { display: none; }
 .setup.mode-lap .set-only { display: none; }
 
@@ -214,12 +214,15 @@ body {
   min-width: 50px;
   letter-spacing: 0.5px;
 }
-.lap-row-fields { display: flex; gap: 10px; flex: 1; }
+.lap-row-fields { display: flex; gap: 8px; flex: 1; }
 .lap-row-fields label {
   flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+  gap: 3px;
   font-size: 10px;
   color: var(--dim);
   text-transform: uppercase;
@@ -1048,11 +1051,11 @@ body {
     <div class="mode-choices">
       <button type="button" class="mode-card" id="chooseSet">
         <span class="mode-card-title">Set Intervals</span>
-        <span class="mode-card-desc">One setup &mdash; repeated for a set number of rounds. Classic HIIT.</span>
+        <span class="mode-card-desc">Build intervals that repeat &mdash; each with its own Work / Rest / Sets.</span>
       </button>
       <button type="button" class="mode-card" id="chooseLap">
         <span class="mode-card-title">Lap Intervals</span>
-        <span class="mode-card-desc">Each lap has its own work &amp; rest &mdash; build a custom sequence.</span>
+        <span class="mode-card-desc">A one-time sequence &mdash; each lap runs once with its own Work / Rest.</span>
       </button>
     </div>
   </div>
@@ -1062,24 +1065,17 @@ body {
     <button type="button" class="back-link" id="backHome">&larr; Back</button>
     <h1 class="mode-title" id="modeTitle">Set Intervals</h1>
 
-    <div class="field-grid set-only">
+    <div class="field-grid set-only" id="setTopGrid">
       <div class="field">
         <label>Prep (sec)</label>
         <input type="number" id="prepSec" value="10" min="0" max="60" inputmode="numeric">
       </div>
       <div class="field">
-        <label>Work (sec)</label>
-        <input type="number" id="workSec" value="40" min="1" max="600" inputmode="numeric">
-      </div>
-      <div class="field">
-        <label>Rest (sec)</label>
-        <input type="number" id="restSec" value="10" min="1" max="600" inputmode="numeric">
-      </div>
-      <div class="field">
-        <label>Sets</label>
-        <input type="number" id="sets" value="8" min="1" max="99" inputmode="numeric">
+        <label>Intervals</label>
+        <input type="number" id="intervalCount" value="1" min="1" max="30" inputmode="numeric">
       </div>
     </div>
+    <div class="lap-list set-only" id="intervalList"></div>
 
     <div class="field-grid lap-only" id="lapTopGrid">
       <div class="field">
@@ -1163,7 +1159,7 @@ body {
     <h2>Nice work!</h2>
     <p>Session complete.</p>
     <div class="stats">
-      <div class="stat"><strong id="doneSets">-</strong>sets</div>
+      <div class="stat"><strong id="doneSets">-</strong>rounds</div>
       <div class="stat"><strong id="doneTime">-</strong>total</div>
     </div>
     <button class="btn" id="againBtn">Do Another</button>
@@ -1533,8 +1529,9 @@ drawTicks();
 // ---------- Timer engine ----------
 const state = {
   mode: 'set', // 'set' | 'lap'
-  prepSec: 10, workSec: 40, restSec: 10, totalSets: 8,
-  laps: [], // lap mode: [{work, rest}, ...]
+  prepSec: 10,
+  blocks: [],       // unified: [{work, rest, sets}] — set mode = intervals, lap mode = laps (sets:1)
+  totalRounds: 0, totalBlocks: 0,
   segments: [], total: 0,
   baseElapsed: 0,   // elapsed seconds captured at the last (re)base point
   baseTime: 0,      // performance.now() at last rebase (used only while running & not paused)
@@ -1578,50 +1575,50 @@ function setBg(cls) {
 function buildSegments() {
   const segs = [];
   let t = 0;
-  if (state.prepSec > 0) { segs.push({ phase: 'prep', start: 0, end: state.prepSec, set: 1 }); t = state.prepSec; }
-  if (state.mode === 'lap') {
-    state.laps.forEach((lap, i) => {
-      const idx = i + 1;
-      segs.push({ phase: 'work', start: t, end: t + lap.work, set: idx }); t += lap.work;
-      if (lap.rest > 0) { segs.push({ phase: 'rest', start: t, end: t + lap.rest, set: idx }); t += lap.rest; }
-    });
-  } else {
-    for (let i = 1; i <= state.totalSets; i++) {
-      segs.push({ phase: 'work', start: t, end: t + state.workSec, set: i }); t += state.workSec;
-      segs.push({ phase: 'rest', start: t, end: t + state.restSec, set: i }); t += state.restSec;
-    }
+  const blocks = state.blocks;
+  if (state.prepSec > 0) {
+    segs.push({ phase: 'prep', start: 0, end: state.prepSec, blockIdx: 0, block: 1, setNum: 1, blockSets: (blocks[0] ? blocks[0].sets : 1) });
+    t = state.prepSec;
   }
+  let rounds = 0;
+  blocks.forEach((b, bi) => {
+    for (let s = 1; s <= b.sets; s++) {
+      rounds++;
+      const meta = { blockIdx: bi, block: bi + 1, setNum: s, blockSets: b.sets };
+      segs.push(Object.assign({ phase: 'work', start: t, end: t + b.work }, meta)); t += b.work;
+      if (b.rest > 0) { segs.push(Object.assign({ phase: 'rest', start: t, end: t + b.rest }, meta)); t += b.rest; }
+    }
+  });
   state.segments = segs;
   state.total = t;
+  state.totalRounds = rounds;
+  state.totalBlocks = blocks.length;
 }
 
-// ---------- Live lap schedule strip ----------
-let lastStripSet = -1;
-function lapSchedule() {
-  if (state.mode === 'lap') return state.laps.map(l => ({ work: l.work, rest: l.rest }));
-  return Array.from({ length: state.totalSets }, () => ({ work: state.workSec, rest: state.restSec }));
-}
-function buildLapStrip() {
+// ---------- Live schedule strip (one chip per interval / lap) ----------
+let lastStripBlock = -1;
+function buildBlockStrip() {
   const strip = $('lapStrip');
   if (!strip) return;
-  const unit = state.mode === 'lap' ? 'Lap' : 'Set';
-  strip.innerHTML = lapSchedule().map((s, i) =>
-    `<div class="lap-chip"><div class="lap-chip-num">${unit} ${i + 1}</div><div class="lap-chip-time">${s.work}/${s.rest}</div></div>`
-  ).join('');
-  lastStripSet = -1;
+  const lap = state.mode === 'lap';
+  strip.innerHTML = state.blocks.map((b, i) => {
+    const label = (lap ? 'Lap ' : 'Int ') + (i + 1);
+    const time = lap ? `${b.work}/${b.rest}` : `${b.work}/${b.rest} &times;${b.sets}`;
+    return `<div class="lap-chip"><div class="lap-chip-num">${label}</div><div class="lap-chip-time">${time}</div></div>`;
+  }).join('');
+  lastStripBlock = -1;
 }
-function updateLapStrip(m) {
+function updateBlockStrip(m) {
   const strip = $('lapStrip');
   if (!strip) return;
   const chips = strip.children;
   for (let i = 0; i < chips.length; i++) {
-    const n = i + 1;
-    chips[i].classList.toggle('current', !m.done && n === m.set);
-    chips[i].classList.toggle('done', m.done ? true : n < m.set);
+    chips[i].classList.toggle('current', !m.done && i === m.blockIdx);
+    chips[i].classList.toggle('done', m.done ? true : i < m.blockIdx);
   }
-  if (m.set !== lastStripSet) {
-    lastStripSet = m.set;
-    const cur = chips[m.set - 1];
+  if (m.blockIdx !== lastStripBlock) {
+    lastStripBlock = m.blockIdx;
+    const cur = chips[m.blockIdx];
     if (cur && cur.scrollIntoView) cur.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   }
 }
@@ -1634,19 +1631,20 @@ function currentElapsed() {
   return Math.max(0, Math.min(state.total, e));
 }
 
-// Given elapsed seconds, resolve which segment/phase/set we're in and time left.
+// Given elapsed seconds, resolve which segment/phase/block we're in and time left.
 function modelAt(e) {
   const segs = state.segments;
-  if (!segs.length) return { segIndex: 0, phase: 'work', set: 1, remaining: 0, whole: 0, done: true };
+  const base = { segIndex: 0, phase: 'work', blockIdx: 0, block: 1, setNum: 1, blockSets: 1, remaining: 0, whole: 0, done: true };
+  if (!segs.length) return base;
   if (e >= state.total) {
     const last = segs[segs.length - 1];
-    return { segIndex: segs.length - 1, phase: last.phase, set: last.set, remaining: 0, whole: 0, done: true };
+    return Object.assign({}, base, { segIndex: segs.length - 1, phase: last.phase, blockIdx: last.blockIdx, block: last.block, setNum: last.setNum, blockSets: last.blockSets });
   }
   let i = 0;
   for (; i < segs.length; i++) { if (e < segs[i].end) break; }
   const seg = segs[i];
   const remaining = seg.end - e;
-  return { segIndex: i, phase: seg.phase, set: seg.set, remaining, whole: Math.max(1, Math.ceil(remaining)), done: false };
+  return { segIndex: i, phase: seg.phase, blockIdx: seg.blockIdx, block: seg.block, setNum: seg.setNum, blockSets: seg.blockSets, remaining, whole: Math.max(1, Math.ceil(remaining)), done: false };
 }
 
 // Jump the timeline to a specific elapsed point (used by Skip and the scrubber).
@@ -1675,9 +1673,15 @@ function render() {
   const e = state.scrubbing ? state.scrubElapsed : currentElapsed();
   const m = modelAt(e);
   $('count').textContent = m.done ? 0 : m.whole;
-  $('unitLabel').textContent = state.mode === 'lap' ? 'Lap' : 'Set';
-  $('curSet').textContent = m.set;
-  $('totSet').textContent = state.totalSets;
+  if (state.mode === 'lap') {
+    $('unitLabel').textContent = 'Lap';
+    $('curSet').textContent = m.block;
+    $('totSet').textContent = state.totalBlocks;
+  } else {
+    $('unitLabel').textContent = state.totalBlocks > 1 ? ('Interval ' + m.block + ' · Set') : 'Set';
+    $('curSet').textContent = m.setNum;
+    $('totSet').textContent = m.blockSets;
+  }
   const label = $('phaseLabel');
   const ring = $('ring');
   label.classList.remove('rest', 'prep');
@@ -1711,7 +1715,7 @@ function render() {
   ring.classList.toggle('scrubbing', state.scrubbing);
   $('ring').style.strokeDashoffset = (1 - pct) * RING_CIRC;
   updateScrubber(e);
-  updateLapStrip(m);
+  updateBlockStrip(m);
 }
 
 function tick() {
@@ -1760,20 +1764,24 @@ function start() {
   if (state.mode === 'lap') {
     state.prepSec = clamp(parseInt($('lapPrep').value) || 0, 0, 60);
     const rows = Array.from($('lapList').querySelectorAll('.lap-row'));
-    state.laps = rows.map(r => ({
+    state.blocks = rows.map(r => ({
       work: clamp(parseInt(r.querySelector('.lap-work').value) || 30, 1, 600),
-      rest: clamp(parseInt(r.querySelector('.lap-rest').value) || 0, 0, 600)
+      rest: clamp(parseInt(r.querySelector('.lap-rest').value) || 0, 0, 600),
+      sets: 1
     }));
-    if (!state.laps.length) state.laps = [{ work: 40, rest: 10 }];
-    state.totalSets = state.laps.length;
+    if (!state.blocks.length) state.blocks = [{ work: 40, rest: 10, sets: 1 }];
   } else {
     state.prepSec = clamp(parseInt($('prepSec').value) || 0, 0, 60);
-    state.workSec = clamp(parseInt($('workSec').value) || 40, 1, 600);
-    state.restSec = clamp(parseInt($('restSec').value) || 10, 1, 600);
-    state.totalSets = clamp(parseInt($('sets').value) || 8, 1, 99);
+    const rows = Array.from($('intervalList').querySelectorAll('.lap-row'));
+    state.blocks = rows.map(r => ({
+      work: clamp(parseInt(r.querySelector('.int-work').value) || 40, 1, 600),
+      rest: clamp(parseInt(r.querySelector('.int-rest').value) || 0, 0, 600),
+      sets: clamp(parseInt(r.querySelector('.int-sets').value) || 1, 1, 99)
+    }));
+    if (!state.blocks.length) state.blocks = [{ work: 40, rest: 10, sets: 8 }];
   }
   buildSegments();
-  buildLapStrip();
+  buildBlockStrip();
   state.baseElapsed = 0;
   state.baseTime = performance.now();
   state.running = true;
@@ -1846,7 +1854,7 @@ function finish() {
   releaseWakeLock();
   const mm = Math.floor(state.total / 60);
   const ss = Math.floor(state.total % 60);
-  $('doneSets').textContent = state.totalSets;
+  $('doneSets').textContent = state.totalRounds;
   $('doneTime').textContent = `${mm}:${ss.toString().padStart(2,'0')}`;
   $('timerScreen').classList.remove('active');
   $('doneScreen').classList.add('active');
@@ -1923,6 +1931,28 @@ function buildLapRows() {
   }
   list.innerHTML = html;
 }
+function buildIntervalRows() {
+  const n = clamp(parseInt($('intervalCount').value) || 1, 1, 30);
+  const list = $('intervalList');
+  const existing = Array.from(list.querySelectorAll('.lap-row')).map(r => ({
+    work: r.querySelector('.int-work').value,
+    rest: r.querySelector('.int-rest').value,
+    sets: r.querySelector('.int-sets').value
+  }));
+  let html = '';
+  for (let i = 0; i < n; i++) {
+    const w = existing[i] ? existing[i].work : 40;
+    const r = existing[i] ? existing[i].rest : 10;
+    const s = existing[i] ? existing[i].sets : 8;
+    html += `<div class="lap-row"><span class="lap-row-label">Interval ${i + 1}</span>` +
+      `<div class="lap-row-fields">` +
+      `<label>Work<input type="number" class="int-work" value="${w}" min="1" max="600" inputmode="numeric"></label>` +
+      `<label>Rest<input type="number" class="int-rest" value="${r}" min="0" max="600" inputmode="numeric"></label>` +
+      `<label>Sets<input type="number" class="int-sets" value="${s}" min="1" max="99" inputmode="numeric"></label>` +
+      `</div></div>`;
+  }
+  list.innerHTML = html;
+}
 function openSetup(mode) {
   state.mode = mode;
   const s = $('setup');
@@ -1930,6 +1960,7 @@ function openSetup(mode) {
   s.classList.add(mode === 'lap' ? 'mode-lap' : 'mode-set');
   $('modeTitle').textContent = mode === 'lap' ? 'Lap Intervals' : 'Set Intervals';
   if (mode === 'lap' && !$('lapList').children.length) buildLapRows();
+  if (mode === 'set' && !$('intervalList').children.length) buildIntervalRows();
   $('homeScreen').classList.add('hidden');
   s.classList.remove('hidden');
 }
@@ -1940,6 +1971,7 @@ $('backHome').addEventListener('click', () => {
   $('homeScreen').classList.remove('hidden');
 });
 $('lapCount').addEventListener('input', buildLapRows);
+$('intervalCount').addEventListener('input', buildIntervalRows);
 
 // keyboard shortcuts
 document.addEventListener('keydown', e => {
