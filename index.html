@@ -1242,6 +1242,30 @@ const beepDone = () => {
   buzz([0, 220, 100, 220, 100, 380]);
 };
 
+// Spoken English countdown (Web Speech API) — "5, 4, 3, 2, 1", drill-tempo style.
+function primeVoice() {
+  try {
+    if (!('speechSynthesis' in window)) return;
+    // Unlock TTS inside the Start gesture — iOS/Chrome need a gesture-initiated first call.
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function say(text) {
+  try {
+    if (!('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(String(text));
+    u.lang = 'en-US';
+    u.rate = 1.15;
+    u.volume = 1;
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function stopVoice() {
+  try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) {}
+}
+
 // ---------- YouTube ----------
 let ytPlayer = null;
 let ytReady = false;
@@ -1750,7 +1774,7 @@ function tick() {
   // Beep only on normal real-time advances; skip large jumps (e.g. returning from background).
   if (dE > 0 && dE < 2) {
     if (state.lastSegIndex !== -1 && m.segIndex !== state.lastSegIndex && !m.done) beepLong();
-    if (!m.done && m.whole !== state.lastWhole && m.whole >= 1 && m.whole <= 5) beepShort();
+    if (!m.done && m.whole !== state.lastWhole && m.whole >= 1 && m.whole <= 5) { beepShort(); say(m.whole); }
   }
   state.lastElapsed = e;
   state.lastSegIndex = m.segIndex;
@@ -1819,6 +1843,7 @@ function start() {
   $('pauseBtn').textContent = 'Pause';
 
   ensureAudio();
+  primeVoice();
   render();
   requestWakeLock();
 
@@ -1844,7 +1869,7 @@ function pause() {
     state.lastWhole = m.whole;
   }
   $('pauseBtn').textContent = state.paused ? 'Resume' : 'Pause';
-  if (state.paused) musicPause(); else musicResume();
+  if (state.paused) { musicPause(); stopVoice(); } else musicResume();
   render();
 }
 
@@ -1860,6 +1885,7 @@ function stop() {
   state.running = false;
   clearInterval(state.intervalId);
   musicPause();
+  stopVoice();
   releaseWakeLock();
   $('timerScreen').classList.remove('active');
   $('setup').classList.remove('hidden');
@@ -1871,6 +1897,7 @@ function finish() {
   state.running = false;
   state.paused = false;
   clearInterval(state.intervalId);
+  stopVoice();
   beepDone();
   musicPause();
   releaseWakeLock();
