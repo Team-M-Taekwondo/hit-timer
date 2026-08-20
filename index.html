@@ -200,13 +200,70 @@ body {
 .lap-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .lap-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   background: rgba(0,0,0,0.3);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 14px;
 }
+.lap-row-top { display: flex; align-items: center; gap: 12px; }
+.lap-row.has-subs .lap-row-top .lap-row-fields { display: none; }
+
+/* Optional sub-laps inside a lap */
+.sub-list { display: flex; flex-direction: column; gap: 6px; }
+.sub-list:empty { display: none; }
+.sub-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-left: 12px;
+}
+.sub-row-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dim);
+  min-width: 44px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.sub-row .lap-row-fields input { font-size: 15px; padding: 6px; }
+.sub-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sub-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+.sub-toggle input { width: 16px; height: 16px; accent-color: var(--work); cursor: pointer; }
+.sub-count {
+  width: 64px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.sub-count::-webkit-outer-spin-button,
+.sub-count::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sub-count:focus { border-color: var(--work); }
+.sub-count:disabled { opacity: 0.35; }
 .lap-row-label {
   font-size: 13px;
   font-weight: 700;
@@ -1059,6 +1116,15 @@ body {
   .ring-wrap { width: 280px; height: 280px; }
   .field input { font-size: 28px; }
   .done h2 { font-size: 36px; }
+  .sub-row { margin-left: 6px; }
+}
+
+.last-updated {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--dim);
+  opacity: 0.7;
 }
 </style>
 </head>
@@ -1084,9 +1150,10 @@ body {
       </button>
       <button type="button" class="mode-card" id="chooseLap">
         <span class="mode-card-title">Lap Intervals</span>
-        <span class="mode-card-desc">A custom sequence of laps &mdash; each with its own Work / Rest and how many Sets to repeat it.</span>
+        <span class="mode-card-desc">A custom sequence of laps &mdash; each with its own Work / Rest and how many Sets to repeat it. Laps can be split into sub-laps too.</span>
       </button>
     </div>
+    <p class="last-updated" id="lastUpdated"></p>
   </div>
 
   <!-- Setup (Set or Lap mode) -->
@@ -1620,7 +1687,7 @@ const state = {
   mode: 'set', // 'set' | 'lap'
   prepSec: 10,
   blocks: [],       // unified: [{work, rest, sets}] — set mode = intervals, lap mode = laps (sets:1)
-  totalRounds: 0, totalBlocks: 0,
+  totalRounds: 0, totalBlocks: 0, totalLaps: 0,
   segments: [], total: 0,
   baseElapsed: 0,   // elapsed seconds captured at the last (re)base point
   baseTime: 0,      // performance.now() at last rebase (used only while running & not paused)
@@ -1666,14 +1733,15 @@ function buildSegments() {
   let t = 0;
   const blocks = state.blocks;
   if (state.prepSec > 0) {
-    segs.push({ phase: 'prep', start: 0, end: state.prepSec, blockIdx: 0, block: 1, setNum: 1, blockSets: (blocks[0] ? blocks[0].sets : 1) });
+    const b0 = blocks[0] || {};
+    segs.push({ phase: 'prep', start: 0, end: state.prepSec, blockIdx: 0, block: 1, setNum: 1, blockSets: b0.sets || 1, lap: b0.lap || 1, sub: b0.sub || 0, subTot: b0.subTot || 0 });
     t = state.prepSec;
   }
   let rounds = 0;
   blocks.forEach((b, bi) => {
     for (let s = 1; s <= b.sets; s++) {
       rounds++;
-      const meta = { blockIdx: bi, block: bi + 1, setNum: s, blockSets: b.sets };
+      const meta = { blockIdx: bi, block: bi + 1, setNum: s, blockSets: b.sets, lap: b.lap || 1, sub: b.sub || 0, subTot: b.subTot || 0 };
       segs.push(Object.assign({ phase: 'work', start: t, end: t + b.work }, meta)); t += b.work;
       if (b.rest > 0) { segs.push(Object.assign({ phase: 'rest', start: t, end: t + b.rest }, meta)); t += b.rest; }
     }
@@ -1690,10 +1758,11 @@ function buildBlockStrip() {
   const strip = $('lapStrip');
   if (!strip) return;
   if (state.mode === 'lap') {
-    // one chip per lap — its work/rest, plus how many sets when it repeats
-    strip.innerHTML = state.blocks.map((b, i) => {
+    // one chip per block — a whole lap, or one sub-lap when the lap is split
+    strip.innerHTML = state.blocks.map(b => {
       const time = b.sets > 1 ? `${b.work}/${b.rest} &times;${b.sets}` : `${b.work}/${b.rest}`;
-      return `<div class="lap-chip"><div class="lap-chip-num">Lap ${i + 1}</div><div class="lap-chip-time">${time}</div></div>`;
+      const label = b.sub ? `Lap ${b.lap || 1} &middot; Sub ${b.sub}` : `Lap ${b.lap || 1}`;
+      return `<div class="lap-chip"><div class="lap-chip-num">${label}</div><div class="lap-chip-time">${time}</div></div>`;
     }).join('');
   } else {
     // set mode: one uniform interval — one chip per set (round)
@@ -1733,17 +1802,17 @@ function currentElapsed() {
 // Given elapsed seconds, resolve which segment/phase/block we're in and time left.
 function modelAt(e) {
   const segs = state.segments;
-  const base = { segIndex: 0, phase: 'work', blockIdx: 0, block: 1, setNum: 1, blockSets: 1, remaining: 0, whole: 0, done: true };
+  const base = { segIndex: 0, phase: 'work', blockIdx: 0, block: 1, setNum: 1, blockSets: 1, lap: 1, sub: 0, subTot: 0, remaining: 0, whole: 0, done: true };
   if (!segs.length) return base;
   if (e >= state.total) {
     const last = segs[segs.length - 1];
-    return Object.assign({}, base, { segIndex: segs.length - 1, phase: last.phase, blockIdx: last.blockIdx, block: last.block, setNum: last.setNum, blockSets: last.blockSets });
+    return Object.assign({}, base, { segIndex: segs.length - 1, phase: last.phase, blockIdx: last.blockIdx, block: last.block, setNum: last.setNum, blockSets: last.blockSets, lap: last.lap, sub: last.sub, subTot: last.subTot });
   }
   let i = 0;
   for (; i < segs.length; i++) { if (e < segs[i].end) break; }
   const seg = segs[i];
   const remaining = seg.end - e;
-  return { segIndex: i, phase: seg.phase, blockIdx: seg.blockIdx, block: seg.block, setNum: seg.setNum, blockSets: seg.blockSets, remaining, whole: Math.max(1, Math.ceil(remaining)), done: false };
+  return { segIndex: i, phase: seg.phase, blockIdx: seg.blockIdx, block: seg.block, setNum: seg.setNum, blockSets: seg.blockSets, lap: seg.lap, sub: seg.sub, subTot: seg.subTot, remaining, whole: Math.max(1, Math.ceil(remaining)), done: false };
 }
 
 // Jump the timeline to a specific elapsed point (used by Skip and the scrubber).
@@ -1773,14 +1842,22 @@ function render() {
   const m = modelAt(e);
   $('count').textContent = m.done ? 0 : m.whole;
   if (state.mode === 'lap') {
-    if (m.blockSets > 1) {
-      $('unitLabel').textContent = 'Lap ' + m.block + ' · Set';
+    if (m.sub && m.blockSets > 1) {
+      $('unitLabel').textContent = 'Lap ' + m.lap + ' · Sub ' + m.sub + ' · Set';
+      $('curSet').textContent = m.setNum;
+      $('totSet').textContent = m.blockSets;
+    } else if (m.sub) {
+      $('unitLabel').textContent = 'Lap ' + m.lap + ' · Sub';
+      $('curSet').textContent = m.sub;
+      $('totSet').textContent = m.subTot;
+    } else if (m.blockSets > 1) {
+      $('unitLabel').textContent = 'Lap ' + m.lap + ' · Set';
       $('curSet').textContent = m.setNum;
       $('totSet').textContent = m.blockSets;
     } else {
       $('unitLabel').textContent = 'Lap';
-      $('curSet').textContent = m.block;
-      $('totSet').textContent = state.totalBlocks;
+      $('curSet').textContent = m.lap;
+      $('totSet').textContent = state.totalLaps;
     }
   } else {
     $('unitLabel').textContent = 'Set';
@@ -1869,12 +1946,30 @@ function start() {
   if (state.mode === 'lap') {
     state.prepSec = clamp(parseInt($('lapPrep').value) || 0, 0, 60);
     const rows = Array.from($('lapList').querySelectorAll('.lap-row'));
-    state.blocks = rows.map(r => ({
-      work: clamp(parseInt(r.querySelector('.lap-work').value) || 30, 1, 600),
-      rest: clamp(parseInt(r.querySelector('.lap-rest').value) || 0, 0, 600),
-      sets: clamp(parseInt(r.querySelector('.lap-sets').value) || 1, 1, 99)
-    }));
-    if (!state.blocks.length) state.blocks = [{ work: 40, rest: 10, sets: 1 }];
+    const blocks = [];
+    rows.forEach((r, li) => {
+      const subToggle = r.querySelector('.sub-enable');
+      const subRows = (subToggle && subToggle.checked) ? Array.from(r.querySelectorAll('.sub-row')) : [];
+      if (subRows.length) {
+        // split lap: each sub-lap becomes its own block
+        subRows.forEach((sr, k) => blocks.push({
+          work: clamp(parseInt(sr.querySelector('.sub-work').value) || 30, 1, 600),
+          rest: clamp(parseInt(sr.querySelector('.sub-rest').value) || 0, 0, 600),
+          sets: clamp(parseInt(sr.querySelector('.sub-sets').value) || 1, 1, 99),
+          lap: li + 1, sub: k + 1, subTot: subRows.length
+        }));
+      } else {
+        blocks.push({
+          work: clamp(parseInt(r.querySelector('.lap-work').value) || 30, 1, 600),
+          rest: clamp(parseInt(r.querySelector('.lap-rest').value) || 0, 0, 600),
+          sets: clamp(parseInt(r.querySelector('.lap-sets').value) || 1, 1, 99),
+          lap: li + 1, sub: 0, subTot: 0
+        });
+      }
+    });
+    state.blocks = blocks;
+    state.totalLaps = rows.length;
+    if (!state.blocks.length) { state.blocks = [{ work: 40, rest: 10, sets: 1, lap: 1, sub: 0, subTot: 0 }]; state.totalLaps = 1; }
   } else {
     state.prepSec = clamp(parseInt($('prepSec').value) || 0, 0, 60);
     state.blocks = [{
@@ -2030,10 +2125,21 @@ function computeSetupTotals() {
   if (state.mode === 'lap') {
     total += clamp(parseInt($('lapPrep').value) || 0, 0, 60);
     Array.from($('lapList').querySelectorAll('.lap-row')).forEach(r => {
-      const w = clamp(parseInt(r.querySelector('.lap-work').value) || 0, 0, 600);
-      const rest = clamp(parseInt(r.querySelector('.lap-rest').value) || 0, 0, 600);
-      const sets = clamp(parseInt(r.querySelector('.lap-sets').value) || 1, 1, 99);
-      const lapTotal = (w + rest) * sets;
+      const subToggle = r.querySelector('.sub-enable');
+      let lapTotal = 0;
+      if (subToggle && subToggle.checked) {
+        Array.from(r.querySelectorAll('.sub-row')).forEach(sr => {
+          const w = clamp(parseInt(sr.querySelector('.sub-work').value) || 0, 0, 600);
+          const rest = clamp(parseInt(sr.querySelector('.sub-rest').value) || 0, 0, 600);
+          const sets = clamp(parseInt(sr.querySelector('.sub-sets').value) || 1, 1, 99);
+          lapTotal += (w + rest) * sets;
+        });
+      } else {
+        const w = clamp(parseInt(r.querySelector('.lap-work').value) || 0, 0, 600);
+        const rest = clamp(parseInt(r.querySelector('.lap-rest').value) || 0, 0, 600);
+        const sets = clamp(parseInt(r.querySelector('.lap-sets').value) || 1, 1, 99);
+        lapTotal = (w + rest) * sets;
+      }
       total += lapTotal;
       const tEl = r.querySelector('.lap-row-total');
       if (tEl) tEl.textContent = fmtDur(lapTotal);
@@ -2048,29 +2154,83 @@ function computeSetupTotals() {
   const el = $('totalTime');
   if (el) el.innerHTML = 'Total workout <strong>' + fmtDur(total) + '</strong>';
 }
+function subRowHTML(k, d) {
+  return `<div class="sub-row"><span class="sub-row-label">Sub ${k + 1}</span>` +
+    `<div class="lap-row-fields">` +
+    `<label>Work<input type="number" class="sub-work" value="${d.work}" min="1" max="600" inputmode="numeric"></label>` +
+    `<label>Rest<input type="number" class="sub-rest" value="${d.rest}" min="0" max="600" inputmode="numeric"></label>` +
+    `<label>Sets<input type="number" class="sub-sets" value="${d.sets}" min="1" max="99" inputmode="numeric"></label>` +
+    `</div></div>`;
+}
 function buildLapRows() {
   const n = clamp(parseInt($('lapCount').value) || 1, 1, 99);
   const list = $('lapList');
   const existing = Array.from(list.querySelectorAll('.lap-row')).map(r => ({
     work: r.querySelector('.lap-work').value,
     rest: r.querySelector('.lap-rest').value,
-    sets: r.querySelector('.lap-sets').value
+    sets: r.querySelector('.lap-sets').value,
+    subsOn: r.querySelector('.sub-enable') ? r.querySelector('.sub-enable').checked : false,
+    subs: Array.from(r.querySelectorAll('.sub-row')).map(sr => ({
+      work: sr.querySelector('.sub-work').value,
+      rest: sr.querySelector('.sub-rest').value,
+      sets: sr.querySelector('.sub-sets').value
+    }))
   }));
   let html = '';
   for (let i = 0; i < n; i++) {
-    const w = existing[i] ? existing[i].work : 40;
-    const r = existing[i] ? existing[i].rest : 10;
-    const s = existing[i] ? existing[i].sets : 1;
-    html += `<div class="lap-row"><span class="lap-row-label">Lap ${i + 1}<span class="lap-row-total"></span></span>` +
+    const d = existing[i] || { work: 40, rest: 10, sets: 1, subsOn: false, subs: [] };
+    const subsOn = d.subsOn && d.subs.length > 0;
+    html += `<div class="lap-row${subsOn ? ' has-subs' : ''}">` +
+      `<div class="lap-row-top">` +
+      `<span class="lap-row-label">Lap ${i + 1}<span class="lap-row-total"></span></span>` +
       `<div class="lap-row-fields">` +
-      `<label>Work<input type="number" class="lap-work" value="${w}" min="1" max="600" inputmode="numeric"></label>` +
-      `<label>Rest<input type="number" class="lap-rest" value="${r}" min="0" max="600" inputmode="numeric"></label>` +
-      `<label>Sets<input type="number" class="lap-sets" value="${s}" min="1" max="99" inputmode="numeric"></label>` +
+      `<label>Work<input type="number" class="lap-work" value="${d.work}" min="1" max="600" inputmode="numeric"></label>` +
+      `<label>Rest<input type="number" class="lap-rest" value="${d.rest}" min="0" max="600" inputmode="numeric"></label>` +
+      `<label>Sets<input type="number" class="lap-sets" value="${d.sets}" min="1" max="99" inputmode="numeric"></label>` +
+      `</div></div>` +
+      `<div class="sub-list">${subsOn ? d.subs.map((sub, k) => subRowHTML(k, sub)).join('') : ''}</div>` +
+      `<div class="sub-toggle-row">` +
+      `<label class="sub-toggle"><input type="checkbox" class="sub-enable"${subsOn ? ' checked' : ''}> Sub-laps</label>` +
+      `<input type="number" class="sub-count" value="${subsOn ? d.subs.length : 2}" min="1" max="20" inputmode="numeric"${subsOn ? '' : ' disabled'}>` +
       `</div></div>`;
   }
   list.innerHTML = html;
   computeSetupTotals();
 }
+// Rebuild one lap's sub-lap rows to match its toggle + count, keeping typed values.
+function syncSubRows(row) {
+  const list = row.querySelector('.sub-list');
+  const on = row.querySelector('.sub-enable').checked;
+  row.classList.toggle('has-subs', on);
+  row.querySelector('.sub-count').disabled = !on;
+  if (!on) { list.innerHTML = ''; return; }
+  const n = clamp(parseInt(row.querySelector('.sub-count').value) || 1, 1, 20);
+  const existing = Array.from(list.querySelectorAll('.sub-row')).map(sr => ({
+    work: sr.querySelector('.sub-work').value,
+    rest: sr.querySelector('.sub-rest').value,
+    sets: sr.querySelector('.sub-sets').value
+  }));
+  // new subs inherit the last sub, or the lap's own values the first time
+  const seed = existing.length ? existing[existing.length - 1] : {
+    work: row.querySelector('.lap-work').value,
+    rest: row.querySelector('.lap-rest').value,
+    sets: row.querySelector('.lap-sets').value
+  };
+  let html = '';
+  for (let k = 0; k < n; k++) html += subRowHTML(k, existing[k] || seed);
+  list.innerHTML = html;
+}
+$('lapList').addEventListener('change', e => {
+  if (e.target.classList.contains('sub-enable')) {
+    syncSubRows(e.target.closest('.lap-row'));
+    computeSetupTotals();
+  }
+});
+$('lapList').addEventListener('input', e => {
+  if (e.target.classList.contains('sub-count')) {
+    syncSubRows(e.target.closest('.lap-row'));
+  }
+});
 function openSetup(mode) {
   state.mode = mode;
   const s = $('setup');
@@ -2151,6 +2311,17 @@ render();
     const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
     setLink('manifest', URL.createObjectURL(blob));
   } catch (e) { console.warn('PWA setup failed', e); }
+})();
+
+// ---------- "Last updated" stamp on the home screen ----------
+(function showLastUpdated() {
+  const el = document.getElementById('lastUpdated');
+  if (!el) return;
+  const d = new Date(document.lastModified);
+  if (isNaN(d)) return;
+  const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  el.textContent = 'Last updated ' + date + ' at ' + time;
 })();
 </script>
 </body>
