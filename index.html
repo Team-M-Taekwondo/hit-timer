@@ -122,6 +122,9 @@ body {
   margin: 0 auto 18px;
   object-fit: contain;
   filter: invert(1);
+  /* logo-transparent.png has a "TAEKWONDO DEMONSTRATION" tagline baked in at
+     the bottom right; this clips it out while keeping the brushstroke tail. */
+  clip-path: polygon(0% 0%, 100% 0%, 100% 71%, 20% 71%, 20% 100%, 0% 100%);
 }
 .setup h1 {
   font-size: 32px;
@@ -1134,7 +1137,7 @@ body {
 
 <div class="app">
   <img class="team-logo app-logo"
-       src="logo.png"
+       src="logo-transparent.png"
        alt="MTEAM Taekwondo Demonstration"
        onerror="this.style.display='none'">
 
