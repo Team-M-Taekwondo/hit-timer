@@ -22,8 +22,9 @@
   --alert: #ef4444;
   --text: #f8fafc;
   --dim: #94a3b8;
-  --card: rgba(255,255,255,0.06);
-  --border: rgba(255,255,255,0.12);
+  --card: rgba(255,255,255,0.09);
+  --border: rgba(255,255,255,0.18);
+  --glass-edge: inset 0 1px 0 rgba(255,255,255,0.28), inset 0 0 0 0.5px rgba(255,255,255,0.08);
 }
 html, body {
   height: 100%;
@@ -35,6 +36,9 @@ html, body {
   -webkit-user-select: none;
 }
 body {
+  /* Transparent so the fixed .bg-gradient layer (z-index:-2) shows through;
+     an opaque body background paints over negative z-index children. */
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -49,25 +53,30 @@ body {
   position: fixed;
   inset: 0;
   z-index: -2;
-  background: radial-gradient(circle at 20% 30%, #1e3a8a 0%, transparent 40%),
-              radial-gradient(circle at 80% 70%, #7c3aed 0%, transparent 40%),
-              radial-gradient(circle at 50% 50%, #0f172a 0%, var(--bg) 100%);
+  background: radial-gradient(circle at 15% 20%, #3b5bdb 0%, transparent 50%),
+              radial-gradient(circle at 85% 75%, #8b5cf6 0%, transparent 50%),
+              radial-gradient(circle at 70% 10%, rgba(236,72,153,0.5) 0%, transparent 40%),
+              radial-gradient(circle at 20% 85%, rgba(34,211,161,0.35) 0%, transparent 40%),
+              radial-gradient(circle at 50% 50%, #1e2749 0%, var(--bg) 100%);
   transition: background 1.2s ease;
 }
 .bg-gradient.work {
-  background: radial-gradient(circle at 20% 30%, #065f46 0%, transparent 40%),
-              radial-gradient(circle at 80% 70%, #0891b2 0%, transparent 40%),
-              radial-gradient(circle at 50% 50%, #042f2e 0%, var(--bg) 100%);
+  background: radial-gradient(circle at 15% 20%, #0ea371 0%, transparent 50%),
+              radial-gradient(circle at 85% 75%, #0ea5c4 0%, transparent 50%),
+              radial-gradient(circle at 70% 10%, rgba(56,189,248,0.4) 0%, transparent 40%),
+              radial-gradient(circle at 50% 50%, #0b3b35 0%, var(--bg) 100%);
 }
 .bg-gradient.rest {
-  background: radial-gradient(circle at 20% 30%, #7c2d12 0%, transparent 40%),
-              radial-gradient(circle at 80% 70%, #b45309 0%, transparent 40%),
-              radial-gradient(circle at 50% 50%, #1c1917 0%, var(--bg) 100%);
+  background: radial-gradient(circle at 15% 20%, #c2410c 0%, transparent 50%),
+              radial-gradient(circle at 85% 75%, #d97706 0%, transparent 50%),
+              radial-gradient(circle at 70% 10%, rgba(251,113,133,0.4) 0%, transparent 40%),
+              radial-gradient(circle at 50% 50%, #3b1d12 0%, var(--bg) 100%);
 }
 .bg-gradient.prep {
-  background: radial-gradient(circle at 20% 30%, #4c1d95 0%, transparent 40%),
-              radial-gradient(circle at 80% 70%, #6d28d9 0%, transparent 40%),
-              radial-gradient(circle at 50% 50%, #1e1b4b 0%, var(--bg) 100%);
+  background: radial-gradient(circle at 15% 20%, #6d28d9 0%, transparent 50%),
+              radial-gradient(circle at 85% 75%, #8b5cf6 0%, transparent 50%),
+              radial-gradient(circle at 70% 10%, rgba(217,70,239,0.4) 0%, transparent 40%),
+              radial-gradient(circle at 50% 50%, #2a2160 0%, var(--bg) 100%);
 }
 .bg-gradient.warn {
   animation: bgPulse 0.5s ease-in-out infinite alternate;
@@ -111,9 +120,11 @@ body {
 .setup {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 24px;
+  border-radius: 28px;
   padding: 32px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  box-shadow: 0 24px 70px rgba(0,0,0,0.45), var(--glass-edge);
 }
 .team-logo {
   display: block;
@@ -166,9 +177,10 @@ body {
 .mode-card {
   text-align: left;
   padding: 20px;
-  border-radius: 16px;
+  border-radius: 20px;
   border: 1px solid var(--border);
-  background: rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.07);
+  box-shadow: var(--glass-edge);
   cursor: pointer;
   transition: all 0.15s;
   font-family: inherit;
@@ -176,7 +188,12 @@ body {
   flex-direction: column;
   gap: 5px;
 }
-.mode-card:hover { border-color: var(--work); background: rgba(34,211,161,0.06); transform: translateY(-2px); }
+.mode-card:hover {
+  border-color: rgba(34,211,161,0.6);
+  background: rgba(34,211,161,0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.3), var(--glass-edge);
+}
 .mode-card-title { font-size: 20px; font-weight: 800; color: var(--text); }
 .mode-card-desc { font-size: 13px; color: var(--dim); line-height: 1.5; }
 
@@ -206,10 +223,11 @@ body {
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
-  background: rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.07);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 10px 14px;
+  box-shadow: var(--glass-edge);
 }
 .lap-row-top { display: flex; align-items: center; gap: 12px; }
 .lap-row.has-subs .lap-row-top .lap-row-fields { display: none; }
@@ -221,7 +239,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.06);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 8px 10px;
@@ -251,7 +269,7 @@ body {
 .sub-toggle input { width: 16px; height: 16px; accent-color: var(--work); cursor: pointer; }
 .sub-count {
   width: 64px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.08);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px;
@@ -320,7 +338,7 @@ body {
 .lap-row-fields input {
   flex: 1;
   min-width: 0;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.08);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px;
@@ -336,11 +354,12 @@ body {
 .lap-row-fields input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .lap-row-fields input:focus { border-color: var(--work); }
 .field {
-  background: rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.07);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 18px;
   padding: 14px;
   text-align: center;
+  box-shadow: var(--glass-edge);
   transition: border 0.2s, transform 0.1s;
 }
 .field:focus-within {
@@ -381,19 +400,24 @@ body {
   margin-bottom: 6px;
   font-weight: 600;
 }
-.music-row input {
+.music-row input,
+.music-input-wrap input {
   width: 100%;
-  background: rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.07);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 12px 14px;
   color: var(--text);
   font-size: 14px;
   outline: none;
   transition: border 0.2s;
   font-family: inherit;
+  box-shadow: var(--glass-edge);
 }
-.music-row input:focus { border-color: var(--work); }
+.music-row input::placeholder,
+.music-input-wrap input::placeholder { color: var(--dim); }
+.music-row input:focus,
+.music-input-wrap input:focus { border-color: var(--work); }
 .music-input-wrap {
   display: flex;
   gap: 8px;
@@ -450,11 +474,14 @@ body {
   gap: 8px;
   width: 100%;
   padding: 10px 14px;
-  background: rgba(0,0,0,0.35);
+  background: rgba(255,255,255,0.08);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   font-size: 13px;
   color: var(--dim);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: var(--glass-edge);
 }
 .music-status .dot {
   width: 8px;
@@ -507,10 +534,11 @@ body {
   display: flex;
   gap: 4px;
   margin-bottom: 14px;
-  background: rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.07);
   padding: 4px;
-  border-radius: 12px;
+  border-radius: 999px;
   border: 1px solid var(--border);
+  box-shadow: var(--glass-edge);
 }
 .source-tab {
   flex: 1;
@@ -520,7 +548,7 @@ body {
   color: var(--dim);
   font-size: 13px;
   font-weight: 600;
-  border-radius: 9px;
+  border-radius: 999px;
   cursor: pointer;
   transition: all 0.15s;
   font-family: inherit;
@@ -611,7 +639,7 @@ body {
 }
 .chip {
   padding: 8px 14px;
-  background: rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.07);
   border: 1px solid var(--border);
   border-radius: 999px;
   font-size: 13px;
@@ -632,29 +660,31 @@ body {
   width: 100%;
   padding: 18px;
   border: none;
-  border-radius: 16px;
+  border-radius: 999px;
   font-size: 17px;
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.1s, box-shadow 0.2s, filter 0.2s;
-  background: linear-gradient(90deg, #22d3a1, #06b6d4);
+  background: linear-gradient(180deg, #2fe0b0, #0ea5c4);
   color: #001a10;
-  box-shadow: 0 10px 30px var(--work-glow);
+  box-shadow: 0 10px 30px var(--work-glow), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.12);
   font-family: inherit;
   letter-spacing: 0.02em;
 }
 .btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
 .btn:active { transform: translateY(0); }
 .btn.secondary {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.1);
   color: var(--text);
-  box-shadow: none;
+  box-shadow: var(--glass-edge);
   border: 1px solid var(--border);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
 }
 .btn.danger {
-  background: linear-gradient(90deg, #ef4444, #f97316);
+  background: linear-gradient(180deg, #f25656, #ea6a1f);
   color: #fff;
-  box-shadow: 0 10px 30px rgba(239,68,68,0.35);
+  box-shadow: 0 10px 30px rgba(239,68,68,0.35), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.15);
 }
 
 .airplay-link {
@@ -722,9 +752,9 @@ body {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   display: none;
   align-items: center;
   justify-content: center;
@@ -735,16 +765,18 @@ body {
 .modal-backdrop.active { display: flex; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .modal {
-  background: #111827;
+  background: rgba(30,36,60,0.65);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 28px;
   padding: 28px;
   max-width: 480px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6), var(--glass-edge);
 }
 .modal h2 {
   font-size: 24px;
@@ -765,7 +797,7 @@ body {
   gap: 14px;
   margin-bottom: 16px;
   padding: 14px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.06);
   border-radius: 12px;
   border: 1px solid var(--border);
 }
@@ -857,16 +889,16 @@ body {
   font-weight: 900;
   letter-spacing: 6px;
   text-transform: uppercase;
-  color: var(--work);
+  color: #8df2d4;
   text-shadow: 0 0 40px var(--work-glow);
   transition: color 0.3s, text-shadow 0.3s;
 }
 .phase-label.rest {
-  color: var(--rest);
+  color: #fdba74;
   text-shadow: 0 0 40px var(--rest-glow);
 }
 .phase-label.prep {
-  color: var(--prep);
+  color: #d8b4fe;
   text-shadow: 0 0 40px var(--prep-glow);
 }
 .phase-label.warn {
@@ -972,7 +1004,8 @@ body {
   width: 100%;
   height: 10px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.14);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.3), inset 0 -0.5px 0 rgba(255,255,255,0.15);
   outline: none;
   cursor: pointer;
   margin: 0;
@@ -1022,10 +1055,13 @@ body {
   flex: 0 0 auto;
   min-width: 62px;
   padding: 8px 10px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.05);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.08);
   border: 1px solid var(--border);
   text-align: center;
+  /* No backdrop-filter here: the strip can hold many chips on the animating
+     timer screen and per-chip blur is costly on older phones. */
+  box-shadow: var(--glass-edge);
   transition: background 0.2s, opacity 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 .lap-chip-num {
@@ -1078,9 +1114,10 @@ body {
   padding: 40px 32px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 24px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  border-radius: 28px;
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  box-shadow: 0 24px 70px rgba(0,0,0,0.45), var(--glass-edge);
 }
 .done.active { display: flex; }
 .done h2 {
